@@ -1,0 +1,69 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model SensorReading {
+  id              String   @id @default(uuid())
+  timestamp       DateTime @default(now())
+  deviceId        String   @default("server-room-01")
+  temperatureC    Float
+  gasAdc          Int
+  humidityPercent Float
+  source          String   @default("simulation") // "simulation" | "hardware"
+  overallStatus   String   @default("NORMAL")     // "NORMAL" | "WARNING" | "CRITICAL"
+
+  @@index([timestamp])
+  @@index([deviceId])
+}
+
+model AlertIncident {
+  id             String    @id @default(uuid())
+  deviceId       String    @default("server-room-01")
+  sensorType     String    // "TEMPERATURE" | "GAS" | "HUMIDITY"
+  severity       String    // "WARNING" | "CRITICAL"
+  measuredValue  Float
+  threshold      Float
+  message        String
+  firstSeenAt    DateTime  @default(now())
+  lastSeenAt     DateTime  @default(now())
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  status         String    @default("ACTIVE") // "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED"
+
+  @@index([status])
+  @@index([severity])
+  @@index([firstSeenAt])
+}
+
+model Device {
+  id               String    @id
+  name             String
+  boardType        String    @default("Arduino UNO R3")
+  connectionType   String    @default("USB Serial (9600 baud)")
+  source           String    @default("simulation")
+  connectionStatus String    @default("SIMULATING") // "CONNECTED" | "DISCONNECTED" | "SIMULATING"
+  lastSeenAt       DateTime?
+  firmwareVersion  String    @default("1.0.0")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model MonitoringSetting {
+  id                     String   @id @default("default")
+  temperatureWarning     Float    @default(30.0)
+  temperatureCritical    Float    @default(35.0)
+  gasWarning             Int      @default(400)
+  humidityLow            Float    @default(30.0)
+  humidityHigh           Float    @default(70.0)
+  refreshIntervalSeconds Int      @default(2)
+  simulationScenario     String   @default("normal")
+  timeFormat             String   @default("24h")
+  powerRatingWatts       Float    @default(2400.0)
+  gridEmissionFactor     Float    @default(0.475)
+  updatedAt              DateTime @updatedAt
+}
